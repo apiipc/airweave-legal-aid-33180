@@ -2,7 +2,6 @@ import { useState } from "react";
 import { MessageList } from "./MessageList";
 import { MessageInput } from "./MessageInput";
 import { DocumentFilters } from "./DocumentFilters";
-import { UploadDocument } from "./UploadDocument";
 import { supabase } from "@/lib/supabaseClient";
 import { toast } from "sonner";
 import { Button } from "./ui/button";
@@ -95,17 +94,15 @@ export const ChatInterface = () => {
   const activeFiltersCount = Object.keys(filters).filter(key => filters[key]).length;
 
   return (
-    <div className="flex h-full bg-background">
+    <div className="flex h-full">
       {/* Main chat area */}
       <div className="flex flex-col flex-1 min-w-0">
         {/* Mobile filter button */}
-        <div className="lg:hidden border-b border-border p-2 flex justify-between items-center gap-2">
+        <div className="lg:hidden border-b border-border/50 p-3 flex justify-between items-center gap-2 bg-card/30 backdrop-blur">
           <h2 className="text-lg font-semibold">Chat</h2>
-          <div className="flex items-center gap-2">
-            <UploadDocument onUploadSuccess={handleUploadSuccess} />
-            <Sheet open={isFiltersOpen} onOpenChange={setIsFiltersOpen}>
+          <Sheet open={isFiltersOpen} onOpenChange={setIsFiltersOpen}>
             <SheetTrigger asChild>
-              <Button variant="outline" size="sm" className="relative">
+              <Button variant="outline" size="sm" className="relative bg-card/50 backdrop-blur border-border/50">
                 <Filter className="h-4 w-4 mr-2" />
                 Bộ lọc
                 {activeFiltersCount > 0 && (
@@ -115,8 +112,8 @@ export const ChatInterface = () => {
                 )}
               </Button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-80 p-0">
-              <SheetHeader className="p-4 border-b">
+            <SheetContent side="right" className="w-80 p-0 bg-card/95 backdrop-blur">
+              <SheetHeader className="p-4 border-b border-border/50">
                 <SheetTitle>Bộ Lọc Tài Liệu</SheetTitle>
               </SheetHeader>
               <div className="h-[calc(100vh-4rem)] overflow-y-auto">
@@ -128,24 +125,22 @@ export const ChatInterface = () => {
               </div>
             </SheetContent>
           </Sheet>
-          </div>
-        </div>
-
-        {/* Desktop header with upload button */}
-        <div className="hidden lg:flex border-b border-border p-3 justify-end">
-          <UploadDocument onUploadSuccess={handleUploadSuccess} />
         </div>
 
         <div className="flex-1 overflow-hidden">
           <MessageList messages={messages} isLoading={isLoading} />
         </div>
-        <div className="border-t border-border bg-card">
-          <MessageInput onSend={handleSendMessage} disabled={isLoading} />
+        <div className="border-t border-border/50 bg-card/30 backdrop-blur">
+          <MessageInput 
+            onSend={handleSendMessage} 
+            onUploadSuccess={handleUploadSuccess}
+            disabled={isLoading} 
+          />
         </div>
       </div>
       
       {/* Document filters sidebar - Desktop */}
-      <div className="w-80 border-l border-border hidden lg:block">
+      <div className="w-80 border-l border-border/50 hidden lg:block bg-card/30 backdrop-blur">
         <DocumentFilters 
           onFiltersChange={handleFiltersChange} 
           refreshTrigger={refreshDocuments}

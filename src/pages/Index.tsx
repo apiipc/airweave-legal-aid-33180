@@ -15,7 +15,7 @@ const Index = () => {
 
   if (loading) {
     return (
-      <div className="flex h-screen w-full items-center justify-center bg-background">
+      <div className="flex h-screen w-full items-center justify-center">
         <div className="text-lg">Đang tải...</div>
       </div>
     );
@@ -26,7 +26,7 @@ const Index = () => {
   }
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-background">
+    <div className="flex h-screen w-full overflow-hidden">
       <ChatInterface />
     </div>
   );

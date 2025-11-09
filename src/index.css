@@ -35,52 +35,57 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* Corporate blue theme for legal tech */
-    --background: 0 0% 98%;
-    --foreground: 222 47% 11%;
+    /* Modern gradient theme */
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    
+    /* Gradient colors */
+    --gradient-start: 217 91% 60%;
+    --gradient-middle: 280 80% 60%;
+    --gradient-end: 330 70% 55%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card: 240 10% 8%;
+    --card-foreground: 0 0% 98%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover: 240 10% 8%;
+    --popover-foreground: 0 0% 98%;
 
-    /* Deep professional blue */
-    --primary: 224 76% 48%;
+    /* Vibrant gradient primary */
+    --primary: 217 91% 60%;
     --primary-foreground: 0 0% 100%;
 
-    /* Light blue-gray for secondary elements */
-    --secondary: 214 32% 91%;
-    --secondary-foreground: 222 47% 11%;
+    /* Dark secondary */
+    --secondary: 240 5% 15%;
+    --secondary-foreground: 0 0% 98%;
 
-    /* Soft gray backgrounds */
-    --muted: 210 40% 96%;
-    --muted-foreground: 215 16% 47%;
+    /* Muted dark gray */
+    --muted: 240 5% 15%;
+    --muted-foreground: 240 5% 65%;
 
-    /* Mint green accent for highlights */
-    --accent: 158 64% 52%;
+    /* Purple accent */
+    --accent: 280 80% 60%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 214 32% 88%;
-    --input: 214 32% 91%;
-    --ring: 224 76% 48%;
+    --border: 240 5% 20%;
+    --input: 240 5% 15%;
+    --ring: 217 91% 60%;
 
     --radius: 0.75rem;
 
     /* Chat specific colors */
-    --chat-user-bg: 224 76% 48%;
+    --chat-user-bg: 217 91% 60%;
     --chat-user-fg: 0 0% 100%;
-    --chat-assistant-bg: 0 0% 100%;
-    --chat-assistant-fg: 222 47% 11%;
+    --chat-assistant-bg: 240 10% 8%;
+    --chat-assistant-fg: 0 0% 98%;
     
     /* Sidebar colors */
-    --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 222 47% 11%;
-    --sidebar-border: 214 32% 88%;
-    --sidebar-accent: 158 64% 52%;
+    --sidebar-background: 240 10% 8%;
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-border: 240 5% 20%;
+    --sidebar-accent: 280 80% 60%;
     --sidebar-accent-foreground: 0 0% 100%;
 
     /* Animation variables */
@@ -88,43 +93,43 @@ All colors MUST be HSL.
   }
 
   .dark {
-    --background: 222 47% 11%;
-    --foreground: 210 40% 98%;
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
 
-    --card: 217 33% 17%;
-    --card-foreground: 210 40% 98%;
+    --card: 240 10% 8%;
+    --card-foreground: 0 0% 98%;
 
-    --popover: 222 47% 11%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 240 10% 8%;
+    --popover-foreground: 0 0% 98%;
 
-    --primary: 224 76% 48%;
+    --primary: 217 91% 60%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 217 33% 17%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 240 5% 15%;
+    --secondary-foreground: 0 0% 98%;
 
-    --muted: 217 33% 17%;
-    --muted-foreground: 215 20% 65%;
+    --muted: 240 5% 15%;
+    --muted-foreground: 240 5% 65%;
 
-    --accent: 158 64% 52%;
+    --accent: 280 80% 60%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 63% 31%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 0 0% 98%;
 
-    --border: 217 33% 17%;
-    --input: 217 33% 17%;
-    --ring: 224 76% 48%;
+    --border: 240 5% 20%;
+    --input: 240 5% 15%;
+    --ring: 217 91% 60%;
 
-    --chat-user-bg: 224 76% 48%;
+    --chat-user-bg: 217 91% 60%;
     --chat-user-fg: 0 0% 100%;
-    --chat-assistant-bg: 217 33% 17%;
-    --chat-assistant-fg: 210 40% 98%;
+    --chat-assistant-bg: 240 10% 8%;
+    --chat-assistant-fg: 0 0% 98%;
 
-    --sidebar-background: 217 33% 14%;
-    --sidebar-foreground: 210 40% 98%;
-    --sidebar-border: 217 33% 17%;
-    --sidebar-accent: 158 64% 52%;
+    --sidebar-background: 240 10% 8%;
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-border: 240 5% 20%;
+    --sidebar-accent: 280 80% 60%;
     --sidebar-accent-foreground: 0 0% 100%;
   }
 }
@@ -135,6 +140,11 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply text-foreground;
+    background: linear-gradient(135deg, 
+      hsl(var(--gradient-start)) 0%, 
+      hsl(var(--gradient-middle)) 50%, 
+      hsl(var(--gradient-end)) 100%);
+    background-attachment: fixed;
   }
 }

@@ -88,17 +88,17 @@ const Auth = () => {
       <div className="container max-w-md px-4 relative z-10">
         <div className="flex items-center justify-center gap-2 mb-8">
           <BookOpen className="h-10 w-10 text-primary" />
-          <h1 className="text-3xl font-bold">Hệ thống tra cứu văn bản</h1>
+          <h1 className="text-3xl font-bold text-foreground">Hệ thống tra cứu văn bản</h1>
         </div>
 
         <Tabs defaultValue="signin" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-2 bg-card/50 backdrop-blur">
             <TabsTrigger value="signin">Đăng nhập</TabsTrigger>
             <TabsTrigger value="signup">Đăng ký</TabsTrigger>
           </TabsList>
 
           <TabsContent value="signin">
-            <Card>
+            <Card className="bg-card/50 backdrop-blur border-border/50">
               <CardHeader>
                 <CardTitle>Đăng nhập</CardTitle>
                 <CardDescription>
@@ -116,6 +116,7 @@ const Auth = () => {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       required
+                      className="bg-background/50"
                     />
                   </div>
                   <div className="space-y-2">
@@ -126,6 +127,7 @@ const Auth = () => {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       required
+                      className="bg-background/50"
                     />
                   </div>
                   <Button type="submit" className="w-full" disabled={isLoading}>
@@ -137,7 +139,7 @@ const Auth = () => {
           </TabsContent>
 
           <TabsContent value="signup">
-            <Card>
+            <Card className="bg-card/50 backdrop-blur border-border/50">
               <CardHeader>
                 <CardTitle>Đăng ký</CardTitle>
                 <CardDescription>
@@ -155,6 +157,7 @@ const Auth = () => {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       required
+                      className="bg-background/50"
                     />
                   </div>
                   <div className="space-y-2">
@@ -165,6 +168,7 @@ const Auth = () => {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       required
+                      className="bg-background/50"
                     />
                   </div>
                   <Button type="submit" className="w-full" disabled={isLoading}>
