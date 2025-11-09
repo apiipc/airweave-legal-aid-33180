@@ -39,10 +39,7 @@ interface AirweaveContext {
   airweaveCitations?: any[];
 }
 
-async function getAirweaveContext(
-  userQuery: string,
-  filters?: Record<string, boolean>
-): Promise<AirweaveContext> {
+async function getAirweaveContext(userQuery: string, filters?: Record<string, boolean>): Promise<AirweaveContext> {
   const url = getSearchUrl();
 
   console.log("Calling Airweave with query:", userQuery);
@@ -89,12 +86,12 @@ async function getAirweaveContext(
       console.error("Airweave API error:", response.status, errorText);
 
       if (response.status === 404) {
-      return {
-        context: "❌ Collection không tồn tại. Vui lòng kiểm tra Collection ID.",
-        sources: [],
-        airweaveAnswer: undefined,
-        airweaveCitations: [],
-      };
+        return {
+          context: "❌ Collection không tồn tại. Vui lòng kiểm tra Collection ID.",
+          sources: [],
+          airweaveAnswer: undefined,
+          airweaveCitations: [],
+        };
       }
 
       return {
@@ -127,12 +124,7 @@ async function getAirweaveContext(
 
       const contextParts = body.results.map((r: AirweaveResult) => {
         // Extract content
-        const content =
-          r.content ||
-          r.text ||
-          r.payload?.content ||
-          r.payload?.text ||
-          JSON.stringify(r);
+        const content = r.content || r.text || r.payload?.content || r.payload?.text || JSON.stringify(r);
 
         // Extract metadata for sources
         const filename =
@@ -145,13 +137,9 @@ async function getAirweaveContext(
           r.metadata?.file_name ||
           r.payload?.file_name;
 
-        const source =
-          r.metadata?.source ||
-          r.payload?.source ||
-          r.metadata?.origin ||
-          r.payload?.origin;
+        const source = r.metadata?.source || r.payload?.source || r.metadata?.origin || r.payload?.origin;
 
-        // Extract URL/link
+        // Extract URL/link from various possible fields
         const url =
           r.metadata?.url ||
           r.payload?.url ||
@@ -162,16 +150,37 @@ async function getAirweaveContext(
           r.metadata?.document_url ||
           r.payload?.document_url ||
           r.metadata?.source_url ||
-          r.payload?.source_url;
+          r.payload?.source_url ||
+          r.metadata?.web_url ||
+          r.payload?.web_url ||
+          r.metadata?.download_url ||
+          r.payload?.download_url ||
+          r.metadata?.view_url ||
+          r.payload?.view_url;
 
-        // Store source information
+        // Log for debugging if no URL found
+        if (!url) {
+          console.log("No URL found for document:", {
+            id: r.id,
+            filename,
+            metadataKeys: r.metadata ? Object.keys(r.metadata) : [],
+            payloadKeys: r.payload ? Object.keys(r.payload) : [],
+          });
+        }
+
+        // Store source information with full metadata for URL extraction fallback
         sources.push({
           filename,
           source,
-          url: url,
-          link: url, // Alias for compatibility
+          url: url || undefined, // Only set if URL exists
+          link: url || undefined, // Alias for compatibility
           content: content.substring(0, 500), // Store preview
-          metadata: { ...r.metadata, ...r.payload },
+          metadata: {
+            ...r.metadata,
+            ...r.payload,
+            // Include raw data for URL extraction fallback
+            _raw: r,
+          },
         });
 
         return content;
