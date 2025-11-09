@@ -47,5 +47,3 @@ export const SYSTEM_PROMPT = `Bạn là trợ lý tư vấn pháp lý chuyên ng
 4. Kết thúc bằng phần "**Căn cứ pháp lý:**" liệt kê tất cả văn bản tham khảo
 
 Hãy luôn trả lời bằng tiếng Việt và sử dụng định dạng markdown để làm rõ cấu trúc câu trả lời.`;
-<｜tool▁calls▁begin｜><｜tool▁call▁begin｜>
-read_lints
