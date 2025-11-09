@@ -3,7 +3,7 @@ import { FilterCheckbox } from "./FilterCheckbox";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Filter, Loader2, AlertCircle, RefreshCw, ExternalLink } from "lucide-react";
 import { Button } from "./ui/button";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabaseClient";
 import { Alert, AlertDescription } from "./ui/alert";
 
 interface DocumentFiltersProps {
