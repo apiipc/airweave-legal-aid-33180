@@ -2,11 +2,7 @@ import { useEffect, useRef } from "react";
 import { Message, Source } from "./ChatInterface";
 import { Loader2, FileText, ExternalLink } from "lucide-react";
 import { Badge } from "./ui/badge";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "./ui/collapsible";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "./ui/collapsible";
 import { Button } from "./ui/button";
 import { ChevronDown } from "lucide-react";
 
@@ -15,6 +11,56 @@ interface MessageListProps {
   isLoading: boolean;
 }
 
+// Helper function to validate and normalize URL
+const getValidUrl = (url: string | undefined, metadata?: Record<string, any>): string | null => {
+  if (!url || typeof url !== "string" || url.trim() === "") {
+    // Try to extract from metadata
+    if (metadata) {
+      const metaUrl =
+        metadata.url || metadata.link || metadata.file_url || metadata.document_url || metadata.source_url;
+      if (metaUrl && typeof metaUrl === "string" && metaUrl.trim() !== "") {
+        url = metaUrl;
+      } else {
+        return null;
+      }
+    } else {
+      return null;
+    }
+  }
+
+  // Normalize URL
+  url = url.trim();
+
+  // Check if URL is valid (starts with http:// or https://)
+  if (url.startsWith("http://") || url.startsWith("https://")) {
+    try {
+      // Validate URL format
+      new URL(url);
+      return url;
+    } catch {
+      return null;
+    }
+  }
+
+  // If URL doesn't have protocol, try to add https://
+  if (url.startsWith("//")) {
+    return `https:${url}`;
+  }
+
+  // If it looks like a domain or path, add https://
+  if (url.includes(".") && !url.includes(" ")) {
+    try {
+      const testUrl = url.startsWith("/") ? url : `https://${url}`;
+      new URL(testUrl);
+      return testUrl;
+    } catch {
+      return null;
+    }
+  }
+
+  return null;
+};
+
 const SourceList = ({ sources }: { sources: Source[] }) => {
   if (!sources || sources.length === 0) return null;
 
@@ -22,11 +68,7 @@ const SourceList = ({ sources }: { sources: Source[] }) => {
     <div className="mt-3 pt-3 border-t border-border/50">
       <Collapsible>
         <CollapsibleTrigger asChild>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="w-full justify-between text-xs h-auto py-1.5"
-          >
+          <Button variant="ghost" size="sm" className="w-full justify-between text-xs h-auto py-1.5">
             <span className="flex items-center gap-2">
               <FileText className="h-3 w-3" />
               <span>{sources.length} nguồn tài liệu</span>
@@ -36,7 +78,9 @@ const SourceList = ({ sources }: { sources: Source[] }) => {
         </CollapsibleTrigger>
         <CollapsibleContent className="space-y-2 mt-2">
           {sources.map((source, index) => {
-            const sourceUrl = source.url || source.link;
+            // Get valid URL with fallback to metadata
+            const sourceUrl = getValidUrl(source.url || source.link, source.metadata);
+
             return (
               <div
                 key={index}
@@ -53,17 +97,30 @@ const SourceList = ({ sources }: { sources: Source[] }) => {
                       {source.source}
                     </Badge>
                   )}
-                  {sourceUrl && (
+                  {sourceUrl ? (
                     <a
                       href={sourceUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="ml-auto flex items-center gap-1 text-primary hover:underline text-xs"
-                      onClick={(e) => e.stopPropagation()}
+                      className="ml-auto flex items-center gap-1 text-primary hover:underline text-xs cursor-pointer"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        // Ensure link opens in new tab
+                        window.open(sourceUrl, "_blank", "noopener,noreferrer");
+                      }}
+                      title={`Mở tài liệu: ${source.filename || "Tài liệu"}`}
                     >
                       <ExternalLink className="h-3 w-3" />
                       <span>Xem tài liệu</span>
                     </a>
+                  ) : (
+                    <span
+                      className="ml-auto flex items-center gap-1 text-muted-foreground text-xs"
+                      title="Không có link tài liệu"
+                    >
+                      <FileText className="h-3 w-3" />
+                      <span>Không có link</span>
+                    </span>
                   )}
                 </div>
                 {source.content && (
@@ -93,23 +150,16 @@ export const MessageList = ({ messages, isLoading }: MessageListProps) => {
       {messages.length === 0 && (
         <div className="flex items-center justify-center h-full">
           <div className="text-center space-y-3">
-            <h2 className="text-2xl font-semibold text-foreground">
-              Chào mừng đến với RAG Chat
-            </h2>
+            <h2 className="text-2xl font-semibold text-foreground">Chào mừng đến với RAG Chat</h2>
             <p className="text-muted-foreground max-w-md">
               Hỏi câu hỏi và tôi sẽ tìm kiếm trong tài liệu để trả lời dựa trên các bộ lọc bạn chọn.
             </p>
           </div>
         </div>
       )}
-      
+
       {messages.map((message) => (
-        <div
-          key={message.id}
-          className={`flex ${
-            message.role === "user" ? "justify-end" : "justify-start"
-          }`}
-        >
+        <div key={message.id} className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}>
           <div
             className={`max-w-[80%] md:max-w-[70%] rounded-xl px-4 py-3 ${
               message.role === "user"
@@ -118,7 +168,7 @@ export const MessageList = ({ messages, isLoading }: MessageListProps) => {
             }`}
           >
             <div className="prose prose-sm max-w-none">
-              {message.content.split('\n').map((line, i) => {
+              {message.content.split("\n").map((line, i) => {
                 // Parse citations like "Google Drive [2]" or "Source [1]"
                 // Match pattern: "Source Name [number]" where Source Name can be multiple words
                 const citationRegex = /([A-Za-zÀ-ỹ\s]+?)\s*\[(\d+)\]/g;
@@ -135,10 +185,10 @@ export const MessageList = ({ messages, isLoading }: MessageListProps) => {
 
                   const sourceName = match[1];
                   const citationNumber = parseInt(match[2], 10);
-                  
+
                   // Find corresponding source
                   const source = message.sources?.[citationNumber - 1];
-                  const sourceUrl = source?.url || source?.link;
+                  const sourceUrl = getValidUrl(source?.url || source?.link, source?.metadata);
 
                   // Create clickable citation
                   if (sourceUrl) {
@@ -149,19 +199,23 @@ export const MessageList = ({ messages, isLoading }: MessageListProps) => {
                           href={sourceUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-primary hover:underline font-medium"
+                          className="text-primary hover:underline font-medium cursor-pointer"
                           title={`Xem tài liệu: ${source?.filename || sourceName}`}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            window.open(sourceUrl, "_blank", "noopener,noreferrer");
+                          }}
                         >
                           [{citationNumber}]
                         </a>
-                      </span>
+                      </span>,
                     );
                   } else {
                     // Non-clickable citation if no URL
                     parts.push(
                       <span key={`citation-${i}-${citationIndex++}`} className="text-primary font-medium">
                         {match[0]}
-                      </span>
+                      </span>,
                     );
                   }
 
@@ -183,16 +237,14 @@ export const MessageList = ({ messages, isLoading }: MessageListProps) => {
                 );
               })}
             </div>
-            
+
             {/* Sources */}
-            {message.sources && message.sources.length > 0 && (
-              <SourceList sources={message.sources} />
-            )}
-            
+            {message.sources && message.sources.length > 0 && <SourceList sources={message.sources} />}
+
             <div className="text-xs opacity-70 mt-2">
-              {message.timestamp.toLocaleTimeString('vi-VN', { 
-                hour: '2-digit', 
-                minute: '2-digit' 
+              {message.timestamp.toLocaleTimeString("vi-VN", {
+                hour: "2-digit",
+                minute: "2-digit",
               })}
             </div>
           </div>
