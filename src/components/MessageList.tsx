@@ -31,6 +31,21 @@ const getValidUrl = (url: string | undefined, metadata?: Record<string, any>): s
   // Normalize URL
   url = url.trim();
 
+  // Transform Google Drive API URLs to sharing links
+  // Pattern: googleapis.com/drive/v3/files/{fileId}?alt=media
+  const googleDriveApiMatch = url.match(/googleapis\.com\/drive\/v3\/files\/([a-zA-Z0-9_-]+)/);
+  if (googleDriveApiMatch) {
+    const fileId = googleDriveApiMatch[1];
+    return `https://drive.google.com/file/d/${fileId}/view`;
+  }
+
+  // Also handle drive.google.com/uc?id= format
+  const googleDriveUcMatch = url.match(/drive\.google\.com\/uc\?id=([a-zA-Z0-9_-]+)/);
+  if (googleDriveUcMatch) {
+    const fileId = googleDriveUcMatch[1];
+    return `https://drive.google.com/file/d/${fileId}/view`;
+  }
+
   // Check if URL is valid (starts with http:// or https://)
   if (url.startsWith("http://") || url.startsWith("https://")) {
     try {
@@ -64,6 +79,15 @@ const getValidUrl = (url: string | undefined, metadata?: Record<string, any>): s
 const SourceList = ({ sources }: { sources: Source[] }) => {
   if (!sources || sources.length === 0) return null;
 
+  // Deduplicate sources based on filename and source
+  const uniqueSources = sources.reduce((acc, source) => {
+    const key = `${source.filename || 'Unknown'}::${source.source || 'Unknown'}`;
+    if (!acc.some(s => `${s.filename || 'Unknown'}::${s.source || 'Unknown'}` === key)) {
+      acc.push(source);
+    }
+    return acc;
+  }, [] as Source[]);
+
   return (
     <div className="mt-3 pt-3 border-t border-border/50">
       <Collapsible>
@@ -71,13 +95,13 @@ const SourceList = ({ sources }: { sources: Source[] }) => {
           <Button variant="ghost" size="sm" className="w-full justify-between text-xs h-auto py-1.5">
             <span className="flex items-center gap-2">
               <FileText className="h-3 w-3" />
-              <span>{sources.length} nguồn tài liệu</span>
+              <span>{uniqueSources.length} nguồn tài liệu</span>
             </span>
             <ChevronDown className="h-3 w-3" />
           </Button>
         </CollapsibleTrigger>
         <CollapsibleContent className="space-y-2 mt-2">
-          {sources.map((source, index) => {
+          {uniqueSources.map((source, index) => {
             // Get valid URL with fallback to metadata
             const sourceUrl = getValidUrl(source.url || source.link, source.metadata);
 
@@ -123,8 +147,7 @@ const SourceList = ({ sources }: { sources: Source[] }) => {
                     </span>
                   )}
                 </div>
-                {/* Hide JSON metadata content - only show if it's actual text content */}
-                {source.content && !source.content.trim().startsWith("{") && !source.content.trim().startsWith("[") && (
+                {source.content && (
                   <p className="text-muted-foreground line-clamp-2 mt-1">
                     {source.content.substring(0, 150)}
                     {source.content.length > 150 ? "..." : ""}
