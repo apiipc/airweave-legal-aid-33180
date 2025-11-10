@@ -95,6 +95,14 @@ export const ChatInterface = () => {
 
   return (
     <div className="flex h-full">
+      {/* Document filters sidebar - Desktop (Left side) */}
+      <div className="w-80 border-r border-border/50 hidden lg:block bg-card/30 backdrop-blur">
+        <DocumentFilters 
+          onFiltersChange={handleFiltersChange} 
+          refreshTrigger={refreshDocuments}
+        />
+      </div>
+
       {/* Main chat area */}
       <div className="flex flex-col flex-1 min-w-0">
         {/* Mobile filter button */}
@@ -112,7 +120,7 @@ export const ChatInterface = () => {
                 )}
               </Button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-80 p-0 bg-card/95 backdrop-blur">
+            <SheetContent side="left" className="w-80 p-0 bg-card/95 backdrop-blur">
               <SheetHeader className="p-4 border-b border-border/50">
                 <SheetTitle>Bộ Lọc Tài Liệu</SheetTitle>
               </SheetHeader>
@@ -137,14 +145,6 @@ export const ChatInterface = () => {
             disabled={isLoading} 
           />
         </div>
-      </div>
-      
-      {/* Document filters sidebar - Desktop */}
-      <div className="w-80 border-l border-border/50 hidden lg:block bg-card/30 backdrop-blur">
-        <DocumentFilters 
-          onFiltersChange={handleFiltersChange} 
-          refreshTrigger={refreshDocuments}
-        />
       </div>
     </div>
   );
