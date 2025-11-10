@@ -139,6 +139,10 @@ All colors MUST be HSL.
     @apply border-border;
   }
 
+  html, body {
+    @apply overflow-hidden;
+  }
+
   body {
     @apply text-foreground;
     background: linear-gradient(135deg, 
