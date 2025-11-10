@@ -147,12 +147,19 @@ const SourceList = ({ sources }: { sources: Source[] }) => {
                     </span>
                   )}
                 </div>
-                {source.content && (
-                  <p className="text-muted-foreground line-clamp-2 mt-1">
-                    {source.content.substring(0, 150)}
-                    {source.content.length > 150 ? "..." : ""}
-                  </p>
-                )}
+                {source.content && (() => {
+                  // Don't show content if it's raw JSON metadata
+                  const contentStr = String(source.content).trim();
+                  if (contentStr.startsWith('{') && contentStr.includes('"id"') && contentStr.includes('"payload"')) {
+                    return null;
+                  }
+                  return (
+                    <p className="text-muted-foreground line-clamp-2 mt-1">
+                      {source.content.substring(0, 150)}
+                      {source.content.length > 150 ? "..." : ""}
+                    </p>
+                  );
+                })()}
               </div>
             );
           })}
