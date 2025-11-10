@@ -1,6 +1,6 @@
 export const AIRWEAVE_CONFIG = {
   apiKey: "9SgFMLVZ_T-p3GITcm8x7l7f7L1Q2Qy-5D4Py2UhebU",
-  collectionId: "thongtu-wm5xmf",
+  collectionId: "phaply-46qb7f",
   baseUrl: "https://api.airweave.ai",
   searchConfig: {
     limit: 20,
