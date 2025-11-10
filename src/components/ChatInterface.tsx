@@ -108,7 +108,7 @@ export const ChatInterface = () => {
   return (
     <div className="flex h-full">
       {/* Document filters sidebar - Desktop (Left side) */}
-      <div className="w-80 border-r border-border/50 hidden lg:block bg-card/30 backdrop-blur flex flex-col">
+      <div className="w-80 border-r border-border">
         <div className="flex-1 overflow-hidden">
           <DocumentFilters onFiltersChange={handleFiltersChange} refreshTrigger={refreshDocuments} />
         </div>
