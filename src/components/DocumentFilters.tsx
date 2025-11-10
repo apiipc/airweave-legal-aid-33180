@@ -204,7 +204,7 @@ export const DocumentFilters = ({ onFiltersChange, hideHeader = false, refreshTr
   }
 
   return (
-    <Card className="h-full border-l border-sidebar-border bg-sidebar/30 backdrop-blur">
+    <Card className="h-full border-0 bg-transparent">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
