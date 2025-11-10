@@ -5,8 +5,9 @@ import { DocumentFilters } from "./DocumentFilters";
 import { supabase } from "@/lib/supabaseClient";
 import { toast } from "sonner";
 import { Button } from "./ui/button";
-import { Filter } from "lucide-react";
+import { Filter, LogOut } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "./ui/sheet";
+import { useNavigate } from "react-router-dom";
 
 export interface Message {
   id: string;
@@ -26,11 +27,23 @@ export interface Source {
 }
 
 export const ChatInterface = () => {
+  const navigate = useNavigate();
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [filters, setFilters] = useState<Record<string, boolean>>({});
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const [refreshDocuments, setRefreshDocuments] = useState(0);
+
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+      toast.success("Đã đăng xuất thành công");
+      navigate("/auth");
+    } catch (error) {
+      console.error("Logout error:", error);
+      toast.error("Lỗi khi đăng xuất");
+    }
+  };
 
   const handleFiltersChange = (newFilters: Record<string, boolean>) => {
     setFilters(newFilters);
@@ -96,11 +109,23 @@ export const ChatInterface = () => {
   return (
     <div className="flex h-full">
       {/* Document filters sidebar - Desktop (Left side) */}
-      <div className="w-80 border-r border-border/50 hidden lg:block bg-card/30 backdrop-blur">
-        <DocumentFilters 
-          onFiltersChange={handleFiltersChange} 
-          refreshTrigger={refreshDocuments}
-        />
+      <div className="w-80 border-r border-border/50 hidden lg:block bg-card/30 backdrop-blur flex flex-col">
+        <div className="flex-1 overflow-hidden">
+          <DocumentFilters 
+            onFiltersChange={handleFiltersChange} 
+            refreshTrigger={refreshDocuments}
+          />
+        </div>
+        <div className="p-4 border-t border-border/50">
+          <Button 
+            variant="outline" 
+            className="w-full" 
+            onClick={handleLogout}
+          >
+            <LogOut className="h-4 w-4 mr-2" />
+            Đăng xuất
+          </Button>
+        </div>
       </div>
 
       {/* Main chat area */}
@@ -108,7 +133,16 @@ export const ChatInterface = () => {
         {/* Mobile filter button */}
         <div className="lg:hidden border-b border-border/50 p-3 flex justify-between items-center gap-2 bg-card/30 backdrop-blur">
           <h2 className="text-lg font-semibold">Chat</h2>
-          <Sheet open={isFiltersOpen} onOpenChange={setIsFiltersOpen}>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleLogout}
+              className="bg-card/50 backdrop-blur border-border/50"
+            >
+              <LogOut className="h-4 w-4" />
+            </Button>
+            <Sheet open={isFiltersOpen} onOpenChange={setIsFiltersOpen}>
             <SheetTrigger asChild>
               <Button variant="outline" size="sm" className="relative bg-card/50 backdrop-blur border-border/50">
                 <Filter className="h-4 w-4 mr-2" />
@@ -120,11 +154,11 @@ export const ChatInterface = () => {
                 )}
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="w-80 p-0 bg-card/95 backdrop-blur">
+            <SheetContent side="left" className="w-80 p-0 bg-card/95 backdrop-blur flex flex-col">
               <SheetHeader className="p-4 border-b border-border/50">
                 <SheetTitle>Bộ Lọc Tài Liệu</SheetTitle>
               </SheetHeader>
-              <div className="h-[calc(100vh-4rem)] overflow-y-auto">
+              <div className="flex-1 overflow-y-auto">
                 <DocumentFilters 
                   onFiltersChange={handleFiltersChange} 
                   hideHeader 
@@ -133,6 +167,7 @@ export const ChatInterface = () => {
               </div>
             </SheetContent>
           </Sheet>
+          </div>
         </div>
 
         <div className="flex-1 overflow-hidden">
