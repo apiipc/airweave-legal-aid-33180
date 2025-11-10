@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { FilterCheckbox } from "./FilterCheckbox";
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Filter, Loader2, AlertCircle, RefreshCw, ExternalLink } from "lucide-react";
 import { Button } from "./ui/button";
 import { supabase } from "@/lib/supabaseClient";
@@ -33,11 +32,11 @@ export const DocumentFilters = ({ onFiltersChange, hideHeader = false, refreshTr
     setError(null);
 
     try {
-      const { data, error: fetchError } = await supabase.functions.invoke('list-documents');
+      const { data, error: fetchError } = await supabase.functions.invoke("list-documents");
 
       if (fetchError) {
         console.error("Error fetching documents:", fetchError);
-        
+
         // Provide more specific error messages
         let errorMessage = "Không thể tải danh sách tài liệu. ";
         if (fetchError.message?.includes("Function not found") || fetchError.message?.includes("404")) {
@@ -47,7 +46,7 @@ export const DocumentFilters = ({ onFiltersChange, hideHeader = false, refreshTr
         } else {
           errorMessage += "Vui lòng thử lại sau.";
         }
-        
+
         setError(errorMessage);
         setIsLoading(false);
         return;
@@ -72,11 +71,11 @@ export const DocumentFilters = ({ onFiltersChange, hideHeader = false, refreshTr
 
   // Extract unique filenames and sources from documents
   const uniqueFilenames = Array.from(
-    new Set(documents.map((doc) => doc.filename).filter((f): f is string => !!f))
+    new Set(documents.map((doc) => doc.filename).filter((f): f is string => !!f)),
   ).sort();
 
   const uniqueSources = Array.from(
-    new Set(documents.map((doc) => doc.source || "Unknown").filter((s): s is string => !!s))
+    new Set(documents.map((doc) => doc.source || "Unknown").filter((s): s is string => !!s)),
   ).sort();
 
   const handleFilterToggle = (filterKey: string) => {
@@ -85,22 +84,22 @@ export const DocumentFilters = ({ onFiltersChange, hideHeader = false, refreshTr
       [filterKey]: !filters[filterKey],
     };
     setFilters(newFilters);
-    
+
     // Convert to Airweave filter format
     const activeFilters: Record<string, boolean> = {};
-    Object.keys(newFilters).forEach(key => {
+    Object.keys(newFilters).forEach((key) => {
       if (newFilters[key]) {
         activeFilters[key] = true;
       }
     });
-    
+
     onFiltersChange(activeFilters);
   };
 
-  const textColorClass = hideHeader ? 'text-foreground' : 'text-sidebar-foreground';
-  
+  const textColorClass = hideHeader ? "text-foreground" : "text-sidebar-foreground";
+
   const content = (
-    <div className={`space-y-6 ${hideHeader ? 'p-6' : ''}`}>
+    <div className={`space-y-6 ${hideHeader ? "p-6" : ""}`}>
       {isLoading && (
         <div className="flex items-center justify-center py-8">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -120,15 +119,13 @@ export const DocumentFilters = ({ onFiltersChange, hideHeader = false, refreshTr
           {/* Filename filters */}
           {uniqueFilenames.length > 0 && (
             <div className="space-y-3">
-              <h3 className={`text-sm font-semibold ${textColorClass}`}>
-                Tên Tệp ({uniqueFilenames.length})
-              </h3>
+              <h3 className={`text-sm font-semibold ${textColorClass}`}>Tên Tệp ({uniqueFilenames.length})</h3>
               <div className="space-y-2 max-h-64 overflow-y-auto">
                 {uniqueFilenames.map((filename) => {
                   // Find document with this filename to get URL
-                  const doc = documents.find(d => d.filename === filename);
+                  const doc = documents.find((d) => d.filename === filename);
                   const docUrl = doc?.url || doc?.link;
-                  
+
                   return (
                     <div key={filename} className="flex items-center justify-between group">
                       <FilterCheckbox
@@ -158,9 +155,7 @@ export const DocumentFilters = ({ onFiltersChange, hideHeader = false, refreshTr
           {/* Source filters */}
           {uniqueSources.length > 0 && (
             <div className="space-y-3">
-              <h3 className={`text-sm font-semibold ${textColorClass}`}>
-                Nguồn ({uniqueSources.length})
-              </h3>
+              <h3 className={`text-sm font-semibold ${textColorClass}`}>Nguồn ({uniqueSources.length})</h3>
               <div className="space-y-2 max-h-64 overflow-y-auto">
                 {uniqueSources.map((source) => (
                   <FilterCheckbox
@@ -181,7 +176,7 @@ export const DocumentFilters = ({ onFiltersChange, hideHeader = false, refreshTr
           )}
 
           {/* Clear filters button */}
-          {Object.keys(filters).some(key => filters[key]) && (
+          {Object.keys(filters).some((key) => filters[key]) && (
             <Button
               variant="outline"
               size="sm"
@@ -219,16 +214,12 @@ export const DocumentFilters = ({ onFiltersChange, hideHeader = false, refreshTr
             className="h-8 w-8 p-0"
             title="Làm mới danh sách"
           >
-            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
           </Button>
         </div>
       </CardHeader>
-      
-      {isExpanded && (
-        <CardContent className="space-y-6">
-          {content}
-        </CardContent>
-      )}
+
+      {isExpanded && <CardContent className="space-y-6">{content}</CardContent>}
     </Card>
   );
 };
