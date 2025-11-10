@@ -121,7 +121,8 @@ export const ChatInterface = () => {
       </div>
 
       {/* Main chat area */}
-              {/* Mobile filter button */}
+      {/* Mobile filter button */}
+      <div className="flex flex-col flex-1 min-w-0">
         <div className="lg:hidden border-b border-border/50 p-3 flex justify-between items-center gap-2 bg-card/30 backdrop-blur">
           <h2 className="text-lg font-semibold">Chat</h2>
           <div className="flex gap-2">
