@@ -71,11 +71,11 @@ export const ChatInterface = () => {
 
     try {
       // Call edge function with query and filters
-      const { data, error } = await supabase.functions.invoke('chat', {
-        body: { 
+      const { data, error } = await supabase.functions.invoke("chat", {
+        body: {
           query: content.trim(),
-          filters: filters
-        }
+          filters: filters,
+        },
       });
 
       if (error) {
@@ -95,7 +95,6 @@ export const ChatInterface = () => {
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
-
     } catch (error) {
       console.error("Chat error:", error);
       toast.error("Đã xảy ra lỗi. Vui lòng thử lại.");
@@ -104,23 +103,17 @@ export const ChatInterface = () => {
     }
   };
 
-  const activeFiltersCount = Object.keys(filters).filter(key => filters[key]).length;
+  const activeFiltersCount = Object.keys(filters).filter((key) => filters[key]).length;
 
   return (
     <div className="flex h-full">
       {/* Document filters sidebar - Desktop (Left side) */}
+      <div className="w-80 border-r border-border/50 hidden lg:block bg-card/30 backdrop-blur flex flex-col">
         <div className="flex-1 overflow-hidden">
-          <DocumentFilters 
-            onFiltersChange={handleFiltersChange} 
-            refreshTrigger={refreshDocuments}
-          />
+          <DocumentFilters onFiltersChange={handleFiltersChange} refreshTrigger={refreshDocuments} />
         </div>
         <div className="p-4 border-t border-border/50">
-          <Button 
-            variant="outline" 
-            className="w-full" 
-            onClick={handleLogout}
-          >
+          <Button variant="outline" className="w-full" onClick={handleLogout}>
             <LogOut className="h-4 w-4 mr-2" />
             Đăng xuất
           </Button>
@@ -133,39 +126,35 @@ export const ChatInterface = () => {
         <div className="lg:hidden border-b border-border/50 p-3 flex justify-between items-center gap-2 bg-card/30 backdrop-blur">
           <h2 className="text-lg font-semibold">Chat</h2>
           <div className="flex gap-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <Button
+              variant="outline"
+              size="sm"
               onClick={handleLogout}
               className="bg-card/50 backdrop-blur border-border/50"
             >
               <LogOut className="h-4 w-4" />
             </Button>
             <Sheet open={isFiltersOpen} onOpenChange={setIsFiltersOpen}>
-            <SheetTrigger asChild>
-              <Button variant="outline" size="sm" className="relative bg-card/50 backdrop-blur border-border/50">
-                <Filter className="h-4 w-4 mr-2" />
-                Bộ lọc
-                {activeFiltersCount > 0 && (
-                  <span className="ml-2 px-1.5 py-0.5 text-xs bg-primary text-primary-foreground rounded-full">
-                    {activeFiltersCount}
-                  </span>
-                )}
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="left" className="w-80 p-0 bg-card/95 backdrop-blur flex flex-col">
-              <SheetHeader className="p-4 border-b border-border/50">
-                <SheetTitle>Bộ Lọc Tài Liệu</SheetTitle>
-              </SheetHeader>
-              <div className="flex-1 overflow-y-auto">
-                <DocumentFilters 
-                  onFiltersChange={handleFiltersChange} 
-                  hideHeader 
-                  refreshTrigger={refreshDocuments}
-                />
-              </div>
-            </SheetContent>
-          </Sheet>
+              <SheetTrigger asChild>
+                <Button variant="outline" size="sm" className="relative bg-card/50 backdrop-blur border-border/50">
+                  <Filter className="h-4 w-4 mr-2" />
+                  Bộ lọc
+                  {activeFiltersCount > 0 && (
+                    <span className="ml-2 px-1.5 py-0.5 text-xs bg-primary text-primary-foreground rounded-full">
+                      {activeFiltersCount}
+                    </span>
+                  )}
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-80 p-0 bg-card/95 backdrop-blur flex flex-col">
+                <SheetHeader className="p-4 border-b border-border/50">
+                  <SheetTitle>Bộ Lọc Tài Liệu</SheetTitle>
+                </SheetHeader>
+                <div className="flex-1 overflow-y-auto">
+                  <DocumentFilters onFiltersChange={handleFiltersChange} hideHeader refreshTrigger={refreshDocuments} />
+                </div>
+              </SheetContent>
+            </Sheet>
           </div>
         </div>
 
@@ -173,11 +162,7 @@ export const ChatInterface = () => {
           <MessageList messages={messages} isLoading={isLoading} />
         </div>
         <div className="border-t border-border/50 bg-card/30 backdrop-blur">
-          <MessageInput 
-            onSend={handleSendMessage} 
-            onUploadSuccess={handleUploadSuccess}
-            disabled={isLoading} 
-          />
+          <MessageInput onSend={handleSendMessage} onUploadSuccess={handleUploadSuccess} disabled={isLoading} />
         </div>
       </div>
     </div>
