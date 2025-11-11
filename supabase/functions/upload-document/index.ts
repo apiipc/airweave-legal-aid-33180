@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { AIRWEAVE_CONFIG, getAirweaveHeaders } from "../_shared/airweave-config.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -12,120 +12,6 @@ interface UploadRequest {
   content: string; // Base64 encoded content
 }
 
-async function uploadToAirweave(
-  filename: string,
-  fileType: string,
-  content: string
-): Promise<{ success: boolean; error?: string; documentId?: string }> {
-  try {
-    // Airweave upload endpoint
-    const uploadUrl = `${AIRWEAVE_CONFIG.baseUrl}/collections/${AIRWEAVE_CONFIG.collectionId}/documents`;
-
-    // Decode base64 content
-    const binaryContent = Uint8Array.from(atob(content), (c) => c.charCodeAt(0));
-
-    // Create FormData for multipart upload
-    const formData = new FormData();
-    
-    // Create a Blob from the binary content
-    const blob = new Blob([binaryContent], { type: fileType });
-    formData.append("file", blob, filename);
-    
-    // Add metadata
-    formData.append("metadata", JSON.stringify({
-      filename: filename,
-      source: "User Upload",
-      uploaded_at: new Date().toISOString(),
-    }));
-
-    console.log("Uploading to Airweave:", filename, "Type:", fileType);
-
-    const response = await fetch(uploadUrl, {
-      method: "POST",
-      headers: {
-        "x-api-key": AIRWEAVE_CONFIG.apiKey,
-        // Don't set Content-Type, let browser set it with boundary for FormData
-      },
-      body: formData,
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("Airweave upload error:", response.status, errorText);
-      
-      // Try alternative method: direct JSON upload
-      return await uploadToAirweaveJSON(filename, fileType, content);
-    }
-
-    const result = await response.json();
-    console.log("Upload successful:", result);
-
-    return {
-      success: true,
-      documentId: result.id || result.document_id,
-    };
-  } catch (error) {
-    console.error("Upload error:", error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "Unknown error",
-    };
-  }
-}
-
-async function uploadToAirweaveJSON(
-  filename: string,
-  fileType: string,
-  content: string
-): Promise<{ success: boolean; error?: string; documentId?: string }> {
-  try {
-    // Alternative: Try JSON API if FormData doesn't work
-    const uploadUrl = `${AIRWEAVE_CONFIG.baseUrl}/collections/${AIRWEAVE_CONFIG.collectionId}/documents`;
-
-    const payload = {
-      filename: filename,
-      content: content, // Base64 content
-      content_type: fileType,
-      metadata: {
-        filename: filename,
-        source: "User Upload",
-        uploaded_at: new Date().toISOString(),
-      },
-    };
-
-    const response = await fetch(uploadUrl, {
-      method: "POST",
-      headers: {
-        ...getAirweaveHeaders(),
-      },
-      body: JSON.stringify(payload),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("Airweave JSON upload error:", response.status, errorText);
-      return {
-        success: false,
-        error: `Upload failed: ${response.status} - ${errorText}`,
-      };
-    }
-
-    const result = await response.json();
-    console.log("JSON upload successful:", result);
-
-    return {
-      success: true,
-      documentId: result.id || result.document_id,
-    };
-  } catch (error) {
-    console.error("JSON upload error:", error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "Unknown error",
-    };
-  }
-}
-
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
@@ -133,6 +19,45 @@ serve(async (req) => {
   }
 
   try {
+    const authHeader = req.headers.get("authorization");
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: "Authentication required",
+        }),
+        {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      {
+        global: {
+          headers: { Authorization: authHeader },
+        },
+      }
+    );
+
+    // Verify user is authenticated
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: "Invalid authentication",
+        }),
+        {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
     const { filename, fileType, content }: UploadRequest = await req.json();
 
     if (!filename || !content) {
@@ -151,26 +76,28 @@ serve(async (req) => {
     console.log("=== Upload Document Request ===");
     console.log("Filename:", filename);
     console.log("File type:", fileType);
-    console.log("Content length:", content.length);
+    console.log("User ID:", user.id);
 
-    const result = await uploadToAirweave(filename, fileType, content);
+    // Decode base64 content
+    const binaryContent = Uint8Array.from(atob(content), (c) => c.charCodeAt(0));
 
-    if (result.success) {
-      return new Response(
-        JSON.stringify({
-          success: true,
-          documentId: result.documentId,
-          message: "Document uploaded successfully",
-        }),
-        {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
-    } else {
+    // Create file path with user ID folder
+    const filePath = `${user.id}/${Date.now()}-${filename}`;
+
+    // Upload to Supabase Storage
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from("documents")
+      .upload(filePath, binaryContent, {
+        contentType: fileType || "application/octet-stream",
+        upsert: false,
+      });
+
+    if (uploadError) {
+      console.error("Storage upload error:", uploadError);
       return new Response(
         JSON.stringify({
           success: false,
-          error: result.error || "Upload failed",
+          error: `Upload failed: ${uploadError.message}`,
         }),
         {
           status: 500,
@@ -178,6 +105,51 @@ serve(async (req) => {
         }
       );
     }
+
+    console.log("File uploaded to storage:", uploadData.path);
+
+    // Save metadata to database
+    const { data: docData, error: dbError } = await supabase
+      .from("uploaded_documents")
+      .insert({
+        user_id: user.id,
+        filename: filename,
+        file_path: uploadData.path,
+        file_type: fileType,
+        file_size: binaryContent.length,
+      })
+      .select()
+      .single();
+
+    if (dbError) {
+      console.error("Database insert error:", dbError);
+      // Try to cleanup the uploaded file
+      await supabase.storage.from("documents").remove([uploadData.path]);
+      
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: `Failed to save document metadata: ${dbError.message}`,
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    console.log("Document metadata saved:", docData.id);
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        documentId: docData.id,
+        message: "Document uploaded successfully",
+      }),
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
   } catch (error) {
     console.error("Upload endpoint error:", error);
 
@@ -193,4 +165,3 @@ serve(async (req) => {
     );
   }
 });
-

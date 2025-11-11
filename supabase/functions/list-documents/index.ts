@@ -118,11 +118,64 @@ serve(async (req) => {
   try {
     console.log("=== List Documents Request ===");
 
-    const documents = await getDocumentsFromAirweave();
+    const authHeader = req.headers.get("authorization");
+    
+    // Get documents from Airweave (external source)
+    const airweaveDocuments = await getDocumentsFromAirweave();
+
+    // Get uploaded documents from Supabase Storage if authenticated
+    let uploadedDocuments: Document[] = [];
+    if (authHeader) {
+      try {
+        const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");
+        const supabase = createClient(
+          Deno.env.get("SUPABASE_URL") ?? "",
+          Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+          {
+            global: {
+              headers: { Authorization: authHeader },
+            },
+          }
+        );
+
+        const { data: docs, error } = await supabase
+          .from("uploaded_documents")
+          .select("*")
+          .order("created_at", { ascending: false });
+
+        if (!error && docs) {
+          uploadedDocuments = docs.map((doc: any) => {
+            const { data: publicUrl } = supabase.storage
+              .from("documents")
+              .getPublicUrl(doc.file_path);
+
+            return {
+              filename: doc.filename,
+              source: "User Upload",
+              id: doc.id,
+              url: publicUrl.publicUrl,
+              link: publicUrl.publicUrl,
+              metadata: {
+                file_type: doc.file_type,
+                file_size: doc.file_size,
+                created_at: doc.created_at,
+                user_id: doc.user_id,
+              },
+            };
+          });
+          console.log("Found uploaded documents:", uploadedDocuments.length);
+        }
+      } catch (error) {
+        console.error("Error fetching uploaded documents:", error);
+      }
+    }
+
+    // Combine documents from both sources
+    const allDocuments = [...uploadedDocuments, ...airweaveDocuments];
 
     return new Response(
       JSON.stringify({
-        documents,
+        documents: allDocuments,
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
