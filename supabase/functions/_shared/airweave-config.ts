@@ -1,21 +1,25 @@
-export const AIRWEAVE_CONFIG = {
-  apiKey: "9SgFMLVZ_T-p3GITcm8x7l7f7L1Q2Qy-5D4Py2UhebU",
-  collectionId: "phaply-46qb7f",
-  baseUrl: "https://api.airweave.ai",
-  searchConfig: {
-    limit: 20,
-    retrieval_strategy: "hybrid" as const,
-    rerank: true,
-    generate_answer: true,
-  },
-};
+export function getAirweaveConfig() {
+  return {
+    apiKey: Deno.env.get("AIRWEAVE_API_KEY") || "",
+    collectionId: Deno.env.get("AIRWEAVE_COLLECTION_ID") || "",
+    baseUrl: "https://api.airweave.ai",
+    searchConfig: {
+      limit: 20,
+      retrieval_strategy: "hybrid" as const,
+      rerank: true,
+      generate_answer: true,
+    },
+  };
+}
 
 export function getSearchUrl(): string {
-  return `${AIRWEAVE_CONFIG.baseUrl}/collections/${AIRWEAVE_CONFIG.collectionId}/search`;
+  const config = getAirweaveConfig();
+  return `${config.baseUrl}/collections/${config.collectionId}/search`;
 }
 export function getAirweaveHeaders(): Record<string, string> {
+  const config = getAirweaveConfig();
   return {
-    "x-api-key": AIRWEAVE_CONFIG.apiKey,
+    "x-api-key": config.apiKey,
     "Content-Type": "application/json",
   };
 }

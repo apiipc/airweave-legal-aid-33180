@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { AIRWEAVE_CONFIG, getSearchUrl, getAirweaveHeaders } from "../_shared/airweave-config.ts";
+import { getAirweaveConfig, getSearchUrl, getAirweaveHeaders } from "../_shared/airweave-config.ts";
 import { SYSTEM_PROMPT } from "../_shared/system-prompt.ts";
 
 const corsHeaders = {
@@ -41,9 +41,10 @@ interface AirweaveContext {
 
 async function getAirweaveContext(userQuery: string, filters?: Record<string, boolean>): Promise<AirweaveContext> {
   const url = getSearchUrl();
+  const config = getAirweaveConfig();
 
   console.log("Calling Airweave with query:", userQuery);
-  console.log("Collection ID:", AIRWEAVE_CONFIG.collectionId);
+  console.log("Collection ID:", config.collectionId);
   console.log("Filters:", filters);
 
   // Build filter object for Airweave API
@@ -65,7 +66,7 @@ async function getAirweaveContext(userQuery: string, filters?: Record<string, bo
 
   const payload: any = {
     query: userQuery,
-    ...AIRWEAVE_CONFIG.searchConfig,
+    ...config.searchConfig,
   };
 
   // Add filters to payload if any

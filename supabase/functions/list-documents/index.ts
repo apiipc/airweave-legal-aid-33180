@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { AIRWEAVE_CONFIG, getAirweaveHeaders } from "../_shared/airweave-config.ts";
+import { getAirweaveConfig, getAirweaveHeaders } from "../_shared/airweave-config.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -16,9 +16,10 @@ interface Document {
 }
 
 async function getDocumentsFromAirweave(): Promise<Document[]> {
+  const config = getAirweaveConfig();
   // Try to get documents by making a broad search query
   // This will return documents with their metadata
-  const url = `${AIRWEAVE_CONFIG.baseUrl}/collections/${AIRWEAVE_CONFIG.collectionId}/search`;
+  const url = `${config.baseUrl}/collections/${config.collectionId}/search`;
 
   try {
     // Use a very broad query to get all documents
