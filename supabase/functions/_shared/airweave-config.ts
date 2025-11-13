@@ -1,7 +1,7 @@
 export function getAirweaveConfig() {
   return {
-    apiKey: Deno.env.get("phaplyapi") || "",
-    collectionId: Deno.env.get("phaplycolection") || "",
+    apiKey: Deno.env.get("tieuchuanapi") || "",
+    collectionId: Deno.env.get("tieuchuanid") || "",
     baseUrl: "https://api.airweave.ai",
     searchConfig: {
       limit: 20,
