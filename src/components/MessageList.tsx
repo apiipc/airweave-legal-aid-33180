@@ -192,7 +192,7 @@ export const MessageList = ({ messages, isLoading }: MessageListProps) => {
       {messages.map((message) => (
         <div key={message.id} className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}>
           <div
-            className={`max-w-[80%] md:max-w-[70%] rounded-xl px-4 py-3 ${
+            className={`max-w-[95%] md:max-w-[90%] rounded-xl px-4 py-3 ${
               message.role === "user"
                 ? "bg-chat-user text-chat-user-foreground"
                 : "bg-chat-assistant text-chat-assistant-foreground border border-border"
