@@ -5,6 +5,8 @@ import { Filter, Loader2, AlertCircle, RefreshCw, ExternalLink } from "lucide-re
 import { Button } from "./ui/button";
 import { supabase } from "@/lib/supabaseClient";
 import { Alert, AlertDescription } from "./ui/alert";
+import { useGoogleDrive } from "@/hooks/useGoogleDrive";
+import { toast } from "sonner";
 
 interface DocumentFiltersProps {
   onFiltersChange: (filters: Record<string, boolean>) => void;
@@ -27,12 +29,24 @@ export const DocumentFilters = ({ onFiltersChange, hideHeader = false, refreshTr
   const [documents, setDocuments] = useState<Document[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [useGoogleDriveFiles, setUseGoogleDriveFiles] = useState(false);
+  
+  const { isConnected, connect, disconnect, listFiles } = useGoogleDrive();
 
   const fetchDocuments = async () => {
     setIsLoading(true);
     setError(null);
 
     try {
+      // If Google Drive is connected and enabled, use it
+      if (useGoogleDriveFiles && isConnected) {
+        const driveFiles = await listFiles();
+        setDocuments(driveFiles);
+        setIsLoading(false);
+        return;
+      }
+
+      // Otherwise use Airweave
       const { data, error: fetchError } = await supabase.functions.invoke("list-documents");
 
       if (fetchError) {
@@ -66,9 +80,27 @@ export const DocumentFilters = ({ onFiltersChange, hideHeader = false, refreshTr
     }
   };
 
+  const handleGoogleDriveConnect = async () => {
+    try {
+      await connect();
+      toast.success("Đã kết nối Google Drive");
+      setUseGoogleDriveFiles(true);
+      fetchDocuments();
+    } catch (err) {
+      toast.error("Không thể kết nối Google Drive");
+    }
+  };
+
+  const handleGoogleDriveDisconnect = () => {
+    disconnect();
+    setUseGoogleDriveFiles(false);
+    toast.success("Đã ngắt kết nối Google Drive");
+    fetchDocuments();
+  };
+
   useEffect(() => {
     fetchDocuments();
-  }, [refreshTrigger]); // Refresh when refreshTrigger changes
+  }, [refreshTrigger, useGoogleDriveFiles, isConnected]); // Refresh when refreshTrigger or source changes
 
   // Extract unique filenames and sources from documents
   const uniqueFilenames = Array.from(
@@ -207,16 +239,37 @@ export const DocumentFilters = ({ onFiltersChange, hideHeader = false, refreshTr
             <Filter className="h-5 w-5 text-sidebar-foreground" />
             <CardTitle className="text-lg text-sidebar-foreground">Bộ Lọc Tài Liệu</CardTitle>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={fetchDocuments}
-            disabled={isLoading}
-            className="h-8 w-8 p-0"
-            title="Làm mới danh sách"
-          >
-            <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
-          </Button>
+          <div className="flex items-center gap-2">
+            {isConnected ? (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleGoogleDriveDisconnect}
+                className="h-8 text-xs"
+              >
+                Ngắt GDrive
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleGoogleDriveConnect}
+                className="h-8 text-xs"
+              >
+                Kết nối GDrive
+              </Button>
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={fetchDocuments}
+              disabled={isLoading}
+              className="h-8 w-8 p-0"
+              title="Làm mới danh sách"
+            >
+              <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
+            </Button>
+          </div>
         </div>
       </CardHeader>
 
