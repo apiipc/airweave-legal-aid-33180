@@ -40,18 +40,75 @@ export const ChatInterface = () => {
   
   const { isConnected, connect, disconnect, listFiles } = useGoogleDrive();
 
+  const CACHE_KEY = 'documents_cache';
+  const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
+
+  // Check if cache is valid
+  const getCachedDocuments = () => {
+    try {
+      const cached = localStorage.getItem(CACHE_KEY);
+      if (!cached) return null;
+      
+      const { data, timestamp, source } = JSON.parse(cached);
+      const now = Date.now();
+      
+      // Check if cache is still valid and source matches
+      const currentSource = useGoogleDriveFiles ? 'gdrive' : 'airweave';
+      if (now - timestamp < CACHE_DURATION && source === currentSource) {
+        return data;
+      }
+      
+      // Cache expired or source changed
+      localStorage.removeItem(CACHE_KEY);
+      return null;
+    } catch (error) {
+      console.error("Error reading cache:", error);
+      return null;
+    }
+  };
+
+  // Save documents to cache
+  const setCachedDocuments = (docs: any[]) => {
+    try {
+      const source = useGoogleDriveFiles ? 'gdrive' : 'airweave';
+      localStorage.setItem(CACHE_KEY, JSON.stringify({
+        data: docs,
+        timestamp: Date.now(),
+        source
+      }));
+    } catch (error) {
+      console.error("Error saving cache:", error);
+    }
+  };
+
   // Fetch documents once at parent level
-  const fetchDocuments = async () => {
+  const fetchDocuments = async (forceRefresh = false) => {
+    // Check cache first unless force refresh
+    if (!forceRefresh) {
+      const cached = getCachedDocuments();
+      if (cached) {
+        console.log("Using cached documents");
+        setDocuments(cached);
+        setIsLoadingDocs(false);
+        return;
+      }
+    }
+
     setIsLoadingDocs(true);
     try {
+      let docs: any[] = [];
+      
       if (useGoogleDriveFiles && isConnected) {
-        const driveFiles = await listFiles();
-        setDocuments(driveFiles);
+        docs = await listFiles();
       } else {
         const { data, error } = await supabase.functions.invoke("list-documents");
         if (error) throw error;
-        setDocuments(data?.documents || []);
+        docs = data?.documents || [];
       }
+      
+      setDocuments(docs);
+      setCachedDocuments(docs);
+      console.log("Fetched and cached documents");
     } catch (error) {
       console.error("Error fetching documents:", error);
       setDocuments([]);
@@ -69,6 +126,7 @@ export const ChatInterface = () => {
       await connect();
       toast.success("Đã kết nối Google Drive");
       setUseGoogleDriveFiles(true);
+      localStorage.removeItem(CACHE_KEY); // Clear cache when switching source
     } catch (err) {
       toast.error("Không thể kết nối Google Drive");
     }
@@ -77,6 +135,7 @@ export const ChatInterface = () => {
   const handleGoogleDriveDisconnect = () => {
     disconnect();
     setUseGoogleDriveFiles(false);
+    localStorage.removeItem(CACHE_KEY); // Clear cache when switching source
     toast.success("Đã ngắt kết nối Google Drive");
   };
 
@@ -96,7 +155,8 @@ export const ChatInterface = () => {
   };
 
   const handleUploadSuccess = () => {
-    // Trigger refresh of document list
+    // Clear cache and trigger refresh to fetch new document
+    localStorage.removeItem(CACHE_KEY);
     setRefreshDocuments((prev) => prev + 1);
     toast.success("Tài liệu đã được upload và đang được xử lý. Bạn có thể hỏi về tài liệu này ngay bây giờ!");
   };
@@ -160,7 +220,7 @@ export const ChatInterface = () => {
             onFiltersChange={handleFiltersChange} 
             documents={documents}
             isLoading={isLoadingDocs}
-            onRefresh={fetchDocuments}
+            onRefresh={() => fetchDocuments(true)} // Force refresh
             isConnected={isConnected}
             onConnect={handleGoogleDriveConnect}
             onDisconnect={handleGoogleDriveDisconnect}
@@ -210,7 +270,7 @@ export const ChatInterface = () => {
                     hideHeader
                     documents={documents}
                     isLoading={isLoadingDocs}
-                    onRefresh={fetchDocuments}
+                    onRefresh={() => fetchDocuments(true)} // Force refresh
                     isConnected={isConnected}
                     onConnect={handleGoogleDriveConnect}
                     onDisconnect={handleGoogleDriveDisconnect}
