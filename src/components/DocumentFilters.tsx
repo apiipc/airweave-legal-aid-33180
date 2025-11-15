@@ -99,8 +99,15 @@ export const DocumentFilters = ({ onFiltersChange, hideHeader = false, refreshTr
   };
 
   useEffect(() => {
+    // Only fetch on mount or when explicitly changing source
+    if (refreshTrigger === 0) return; // Skip initial render
     fetchDocuments();
-  }, [refreshTrigger, useGoogleDriveFiles, isConnected]); // Refresh when refreshTrigger or source changes
+  }, [refreshTrigger, useGoogleDriveFiles]); // Removed isConnected to avoid unnecessary fetches
+
+  // Initial fetch on mount
+  useEffect(() => {
+    fetchDocuments();
+  }, []); // Only run once on mount
 
   // Extract unique filenames and sources from documents
   const uniqueFilenames = Array.from(
