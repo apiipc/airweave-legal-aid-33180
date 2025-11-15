@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { MessageList } from "./MessageList";
 import { MessageInput } from "./MessageInput";
 import { DocumentFilters } from "./DocumentFilters";
@@ -8,6 +8,7 @@ import { Button } from "./ui/button";
 import { Filter, LogOut } from "lucide-react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "./ui/sheet";
 import { useNavigate } from "react-router-dom";
+import { useGoogleDrive } from "@/hooks/useGoogleDrive";
 
 export interface Message {
   id: string;
@@ -33,6 +34,51 @@ export const ChatInterface = () => {
   const [filters, setFilters] = useState<Record<string, boolean>>({});
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const [refreshDocuments, setRefreshDocuments] = useState(0);
+  const [documents, setDocuments] = useState<any[]>([]);
+  const [isLoadingDocs, setIsLoadingDocs] = useState(true);
+  const [useGoogleDriveFiles, setUseGoogleDriveFiles] = useState(false);
+  
+  const { isConnected, connect, disconnect, listFiles } = useGoogleDrive();
+
+  // Fetch documents once at parent level
+  const fetchDocuments = async () => {
+    setIsLoadingDocs(true);
+    try {
+      if (useGoogleDriveFiles && isConnected) {
+        const driveFiles = await listFiles();
+        setDocuments(driveFiles);
+      } else {
+        const { data, error } = await supabase.functions.invoke("list-documents");
+        if (error) throw error;
+        setDocuments(data?.documents || []);
+      }
+    } catch (error) {
+      console.error("Error fetching documents:", error);
+      setDocuments([]);
+    } finally {
+      setIsLoadingDocs(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDocuments();
+  }, [refreshDocuments, useGoogleDriveFiles, isConnected]);
+
+  const handleGoogleDriveConnect = async () => {
+    try {
+      await connect();
+      toast.success("Đã kết nối Google Drive");
+      setUseGoogleDriveFiles(true);
+    } catch (err) {
+      toast.error("Không thể kết nối Google Drive");
+    }
+  };
+
+  const handleGoogleDriveDisconnect = () => {
+    disconnect();
+    setUseGoogleDriveFiles(false);
+    toast.success("Đã ngắt kết nối Google Drive");
+  };
 
   const handleLogout = async () => {
     try {
@@ -110,7 +156,15 @@ export const ChatInterface = () => {
       {/* Document filters sidebar - Desktop (Left side) */}
       <div className="w-80 border-r border-border/50 hidden lg:block bg-card/30 backdrop-blur flex flex-col">
         <div className="flex-1 overflow-hidden">
-          <DocumentFilters onFiltersChange={handleFiltersChange} refreshTrigger={refreshDocuments} />
+          <DocumentFilters 
+            onFiltersChange={handleFiltersChange} 
+            documents={documents}
+            isLoading={isLoadingDocs}
+            onRefresh={fetchDocuments}
+            isConnected={isConnected}
+            onConnect={handleGoogleDriveConnect}
+            onDisconnect={handleGoogleDriveDisconnect}
+          />
         </div>
         <div className="p-4 border-t border-border/50">
           <Button variant="outline" className="w-full" onClick={handleLogout}>
@@ -151,7 +205,16 @@ export const ChatInterface = () => {
                   <SheetTitle>Bộ Lọc Tài Liệu</SheetTitle>
                 </SheetHeader>
                 <div className="flex-1 overflow-y-auto">
-                  <DocumentFilters onFiltersChange={handleFiltersChange} hideHeader refreshTrigger={refreshDocuments} />
+                  <DocumentFilters 
+                    onFiltersChange={handleFiltersChange} 
+                    hideHeader
+                    documents={documents}
+                    isLoading={isLoadingDocs}
+                    onRefresh={fetchDocuments}
+                    isConnected={isConnected}
+                    onConnect={handleGoogleDriveConnect}
+                    onDisconnect={handleGoogleDriveDisconnect}
+                  />
                 </div>
               </SheetContent>
             </Sheet>
