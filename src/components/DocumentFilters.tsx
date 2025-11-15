@@ -1,17 +1,18 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { FilterCheckbox } from "./FilterCheckbox";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
-import { Filter, Loader2, AlertCircle, RefreshCw, ExternalLink } from "lucide-react";
+import { Filter, Loader2, RefreshCw, ExternalLink } from "lucide-react";
 import { Button } from "./ui/button";
-import { supabase } from "@/lib/supabaseClient";
-import { Alert, AlertDescription } from "./ui/alert";
-import { useGoogleDrive } from "@/hooks/useGoogleDrive";
-import { toast } from "sonner";
 
 interface DocumentFiltersProps {
   onFiltersChange: (filters: Record<string, boolean>) => void;
   hideHeader?: boolean;
-  refreshTrigger?: number;
+  documents: Document[];
+  isLoading: boolean;
+  onRefresh: () => void;
+  isConnected: boolean;
+  onConnect: () => void;
+  onDisconnect: () => void;
 }
 
 interface Document {
@@ -23,91 +24,18 @@ interface Document {
   metadata?: Record<string, any>;
 }
 
-export const DocumentFilters = ({ onFiltersChange, hideHeader = false, refreshTrigger = 0 }: DocumentFiltersProps) => {
+export const DocumentFilters = ({ 
+  onFiltersChange, 
+  hideHeader = false, 
+  documents, 
+  isLoading, 
+  onRefresh,
+  isConnected,
+  onConnect,
+  onDisconnect 
+}: DocumentFiltersProps) => {
   const [isExpanded] = useState(true);
   const [filters, setFilters] = useState<Record<string, boolean>>({});
-  const [documents, setDocuments] = useState<Document[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [useGoogleDriveFiles, setUseGoogleDriveFiles] = useState(false);
-  
-  const { isConnected, connect, disconnect, listFiles } = useGoogleDrive();
-
-  const fetchDocuments = async () => {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      // If Google Drive is connected and enabled, use it
-      if (useGoogleDriveFiles && isConnected) {
-        const driveFiles = await listFiles();
-        setDocuments(driveFiles);
-        setIsLoading(false);
-        return;
-      }
-
-      // Otherwise use Airweave
-      const { data, error: fetchError } = await supabase.functions.invoke("list-documents");
-
-      if (fetchError) {
-        console.error("Error fetching documents:", fetchError);
-
-        // Provide more specific error messages
-        let errorMessage = "Không thể tải danh sách tài liệu. ";
-        if (fetchError.message?.includes("Function not found") || fetchError.message?.includes("404")) {
-          errorMessage += "Edge function chưa được deploy. Vui lòng deploy function 'list-documents'.";
-        } else if (fetchError.message?.includes("401") || fetchError.message?.includes("403")) {
-          errorMessage += "Lỗi xác thực. Vui lòng đăng nhập lại.";
-        } else {
-          errorMessage += "Vui lòng thử lại sau.";
-        }
-
-        setError(errorMessage);
-        setIsLoading(false);
-        return;
-      }
-
-      if (data?.documents) {
-        setDocuments(data.documents);
-      } else {
-        setError("Không tìm thấy tài liệu nào.");
-      }
-    } catch (err) {
-      console.error("Error fetching documents:", err);
-      setError("Đã xảy ra lỗi khi tải danh sách tài liệu.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleGoogleDriveConnect = async () => {
-    try {
-      await connect();
-      toast.success("Đã kết nối Google Drive");
-      setUseGoogleDriveFiles(true);
-      fetchDocuments();
-    } catch (err) {
-      toast.error("Không thể kết nối Google Drive");
-    }
-  };
-
-  const handleGoogleDriveDisconnect = () => {
-    disconnect();
-    setUseGoogleDriveFiles(false);
-    toast.success("Đã ngắt kết nối Google Drive");
-    fetchDocuments();
-  };
-
-  useEffect(() => {
-    // Only fetch on mount or when explicitly changing source
-    if (refreshTrigger === 0) return; // Skip initial render
-    fetchDocuments();
-  }, [refreshTrigger, useGoogleDriveFiles]); // Removed isConnected to avoid unnecessary fetches
-
-  // Initial fetch on mount
-  useEffect(() => {
-    fetchDocuments();
-  }, []); // Only run once on mount
 
   // Extract unique filenames and sources from documents
   const uniqueFilenames = Array.from(
@@ -147,14 +75,7 @@ export const DocumentFilters = ({ onFiltersChange, hideHeader = false, refreshTr
         </div>
       )}
 
-      {error && (
-        <Alert variant="destructive" className="mx-4">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription className="text-sm">{error}</AlertDescription>
-        </Alert>
-      )}
-
-      {!isLoading && !error && (
+      {!isLoading && (
         <>
           {/* Filename filters */}
           {uniqueFilenames.length > 0 && (
@@ -251,7 +172,7 @@ export const DocumentFilters = ({ onFiltersChange, hideHeader = false, refreshTr
               <Button
                 variant="outline"
                 size="sm"
-                onClick={handleGoogleDriveDisconnect}
+                onClick={onDisconnect}
                 className="h-8 text-xs"
               >
                 Ngắt GDrive
@@ -260,7 +181,7 @@ export const DocumentFilters = ({ onFiltersChange, hideHeader = false, refreshTr
               <Button
                 variant="outline"
                 size="sm"
-                onClick={handleGoogleDriveConnect}
+                onClick={onConnect}
                 className="h-8 text-xs"
               >
                 Kết nối GDrive
@@ -269,7 +190,7 @@ export const DocumentFilters = ({ onFiltersChange, hideHeader = false, refreshTr
             <Button
               variant="ghost"
               size="sm"
-              onClick={fetchDocuments}
+              onClick={onRefresh}
               disabled={isLoading}
               className="h-8 w-8 p-0"
               title="Làm mới danh sách"
