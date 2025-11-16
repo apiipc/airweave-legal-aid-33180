@@ -119,7 +119,7 @@ export const ChatInterface = () => {
 
   useEffect(() => {
     fetchDocuments();
-  }, [refreshDocuments, useGoogleDriveFiles, isConnected]);
+  }, [refreshDocuments, useGoogleDriveFiles]);
 
   const handleGoogleDriveConnect = async () => {
     try {
