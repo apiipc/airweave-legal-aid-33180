@@ -35,8 +35,10 @@ export const ChatInterface = () => {
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const [refreshDocuments, setRefreshDocuments] = useState(0);
   const [documents, setDocuments] = useState<any[]>([]);
-  const [isLoadingDocs, setIsLoadingDocs] = useState(true);
+  const [isLoadingDocs, setIsLoadingDocs] = useState(false);
   const [useGoogleDriveFiles, setUseGoogleDriveFiles] = useState(false);
+  const [hasLoadedDocs, setHasLoadedDocs] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
   
   const { isConnected, connect, disconnect, listFiles } = useGoogleDrive();
 
@@ -160,8 +162,19 @@ export const ChatInterface = () => {
     }
   };
 
+  // Only fetch when filters are opened for the first time
   useEffect(() => {
-    fetchDocuments();
+    if (showFilters && !hasLoadedDocs) {
+      fetchDocuments();
+      setHasLoadedDocs(true);
+    }
+  }, [showFilters, hasLoadedDocs]);
+
+  // Fetch when manually refreshed or source changes
+  useEffect(() => {
+    if (hasLoadedDocs && refreshDocuments > 0) {
+      fetchDocuments();
+    }
   }, [refreshDocuments, useGoogleDriveFiles]);
 
   const handleGoogleDriveConnect = async () => {
@@ -257,7 +270,8 @@ export const ChatInterface = () => {
   return (
     <div className="flex h-full">
       {/* Document filters sidebar - Desktop (Left side) */}
-      <div className="w-80 border-r border-border/50 hidden lg:block bg-card/30 backdrop-blur flex flex-col">
+      {showFilters && (
+        <div className="w-80 border-r border-border/50 hidden lg:block bg-card/30 backdrop-blur flex flex-col">
         <div className="flex-1 overflow-hidden">
           <DocumentFilters 
             onFiltersChange={handleFiltersChange} 
@@ -275,12 +289,13 @@ export const ChatInterface = () => {
             Đăng xuất
           </Button>
         </div>
-      </div>
+        </div>
+      )}
 
       {/* Main chat area */}
       {/* Mobile filter button */}
       <div className="flex flex-col flex-1 min-w-0">
-        <div className="lg:hidden border-b border-border/50 p-3 flex justify-between items-center gap-2 bg-card/30 backdrop-blur">
+        <div className="border-b border-border/50 p-3 flex justify-between items-center gap-2 bg-card/30 backdrop-blur">
           <h2 className="text-lg font-semibold">Chat</h2>
           <div className="flex gap-2">
             <Button
@@ -291,7 +306,27 @@ export const ChatInterface = () => {
             >
               <LogOut className="h-4 w-4" />
             </Button>
-            <Sheet open={isFiltersOpen} onOpenChange={setIsFiltersOpen}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowFilters(!showFilters)}
+              className="hidden lg:flex bg-card/50 backdrop-blur border-border/50"
+            >
+              <Filter className="h-4 w-4 mr-2" />
+              {showFilters ? 'Ẩn bộ lọc' : 'Hiện bộ lọc'}
+              {activeFiltersCount > 0 && (
+                <span className="ml-2 px-1.5 py-0.5 text-xs bg-primary text-primary-foreground rounded-full">
+                  {activeFiltersCount}
+                </span>
+              )}
+            </Button>
+            <Sheet open={isFiltersOpen} onOpenChange={(open) => {
+              setIsFiltersOpen(open);
+              if (open && !hasLoadedDocs) {
+                fetchDocuments();
+                setHasLoadedDocs(true);
+              }
+            }}>
               <SheetTrigger asChild>
                 <Button variant="outline" size="sm" className="relative bg-card/50 backdrop-blur border-border/50">
                   <Filter className="h-4 w-4 mr-2" />
