@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      google_drive_documents: {
+        Row: {
+          created_at: string | null
+          filename: string
+          google_drive_file_id: string
+          id: string
+          link: string | null
+          metadata: Json | null
+          source: string | null
+          updated_at: string | null
+          url: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          filename: string
+          google_drive_file_id: string
+          id?: string
+          link?: string | null
+          metadata?: Json | null
+          source?: string | null
+          updated_at?: string | null
+          url?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          filename?: string
+          google_drive_file_id?: string
+          id?: string
+          link?: string | null
+          metadata?: Json | null
+          source?: string | null
+          updated_at?: string | null
+          url?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       uploaded_documents: {
         Row: {
           created_at: string | null
