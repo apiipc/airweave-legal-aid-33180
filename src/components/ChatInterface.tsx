@@ -115,26 +115,30 @@ export const ChatInterface = () => {
         const driveFiles = await listFiles();
         docs = driveFiles;
         
-        // Save to database
+        // Clear old cache and save new data to database
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
+          // Delete all old documents for this user first
+          await supabase
+            .from('google_drive_documents')
+            .delete()
+            .eq('user_id', user.id);
+          
+          // Insert fresh documents
           const docsToInsert = driveFiles.map(doc => ({
             user_id: user.id,
-            google_drive_file_id: doc.id || doc.google_drive_file_id || doc.filename,
+            google_drive_file_id: doc.id || doc.filename,
             filename: doc.filename || doc.name || 'Unknown',
             source: doc.source || 'Google Drive',
-            url: doc.url || '',
-            link: doc.link || doc.url || '',
+            url: doc.url || doc.webViewLink || '',
+            link: doc.link || doc.webViewLink || doc.url || '',
             metadata: doc.metadata || doc
           }));
           
-          // Upsert to handle updates
-          for (const docData of docsToInsert) {
+          if (docsToInsert.length > 0) {
             await supabase
               .from('google_drive_documents')
-              .upsert(docData, {
-                onConflict: 'user_id,google_drive_file_id'
-              });
+              .insert(docsToInsert);
           }
           console.log("Saved Google Drive documents to database");
         }
