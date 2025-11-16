@@ -107,6 +107,7 @@ serve(async (req) => {
         filename: file.name,
         source: 'Google Drive',
         url: file.webViewLink,
+        link: file.webViewLink, // Use webViewLink for direct browser access
         metadata: {
           mimeType: file.mimeType,
           createdTime: file.createdTime,
