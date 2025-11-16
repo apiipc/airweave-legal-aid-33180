@@ -83,24 +83,63 @@ export const ChatInterface = () => {
 
   // Fetch documents once at parent level
   const fetchDocuments = async (forceRefresh = false) => {
-    // Check cache first unless force refresh
-    if (!forceRefresh) {
-      const cached = getCachedDocuments();
-      if (cached) {
-        console.log("Using cached documents");
-        setDocuments(cached);
-        setIsLoadingDocs(false);
-        return;
-      }
-    }
-
     setIsLoadingDocs(true);
     try {
       let docs: any[] = [];
       
       if (useGoogleDriveFiles && isConnected) {
-        docs = await listFiles();
+        // Check database cache first for Google Drive
+        if (!forceRefresh) {
+          const { data: cachedDocs, error: cacheError } = await supabase
+            .from('google_drive_documents')
+            .select('*');
+          
+          if (!cacheError && cachedDocs && cachedDocs.length > 0) {
+            console.log("Using database cached Google Drive documents");
+            docs = cachedDocs.map(doc => ({
+              id: doc.google_drive_file_id,
+              filename: doc.filename,
+              source: doc.source,
+              url: doc.url,
+              link: doc.link,
+              metadata: doc.metadata
+            }));
+            setDocuments(docs);
+            setIsLoadingDocs(false);
+            return;
+          }
+        }
+        
+        // Fetch from Google Drive API
+        console.log("Fetching from Google Drive API");
+        const driveFiles = await listFiles();
+        docs = driveFiles;
+        
+        // Save to database
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const docsToInsert = driveFiles.map(doc => ({
+            user_id: user.id,
+            google_drive_file_id: doc.id || doc.google_drive_file_id || doc.filename,
+            filename: doc.filename || doc.name || 'Unknown',
+            source: doc.source || 'Google Drive',
+            url: doc.url || '',
+            link: doc.link || doc.url || '',
+            metadata: doc.metadata || doc
+          }));
+          
+          // Upsert to handle updates
+          for (const docData of docsToInsert) {
+            await supabase
+              .from('google_drive_documents')
+              .upsert(docData, {
+                onConflict: 'user_id,google_drive_file_id'
+              });
+          }
+          console.log("Saved Google Drive documents to database");
+        }
       } else {
+        // Use Airweave for non-Google Drive mode
         const { data, error } = await supabase.functions.invoke("list-documents");
         if (error) throw error;
         docs = data?.documents || [];
