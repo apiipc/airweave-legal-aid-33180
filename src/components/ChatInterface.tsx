@@ -1,14 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { MessageList } from "./MessageList";
 import { MessageInput } from "./MessageInput";
-import { DocumentFilters } from "./DocumentFilters";
 import { supabase } from "@/lib/supabaseClient";
 import { toast } from "sonner";
 import { Button } from "./ui/button";
-import { Filter, LogOut } from "lucide-react";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "./ui/sheet";
+import { LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useGoogleDrive } from "@/hooks/useGoogleDrive";
 
 export interface Message {
   id: string;
@@ -31,169 +28,7 @@ export const ChatInterface = () => {
   const navigate = useNavigate();
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [filters, setFilters] = useState<Record<string, boolean>>({});
-  const [isFiltersOpen, setIsFiltersOpen] = useState(false);
-  const [refreshDocuments, setRefreshDocuments] = useState(0);
-  const [documents, setDocuments] = useState<any[]>([]);
-  const [isLoadingDocs, setIsLoadingDocs] = useState(false);
-  const [useGoogleDriveFiles, setUseGoogleDriveFiles] = useState(false);
-  const [hasLoadedDocs, setHasLoadedDocs] = useState(false);
-  const [showFilters, setShowFilters] = useState(false);
-  
-  const { isConnected, connect, disconnect, listFiles } = useGoogleDrive();
 
-  const CACHE_KEY = 'documents_cache';
-  const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes in milliseconds
-
-  // Check if cache is valid
-  const getCachedDocuments = () => {
-    try {
-      const cached = localStorage.getItem(CACHE_KEY);
-      if (!cached) return null;
-      
-      const { data, timestamp, source } = JSON.parse(cached);
-      const now = Date.now();
-      
-      // Check if cache is still valid and source matches
-      const currentSource = useGoogleDriveFiles ? 'gdrive' : 'airweave';
-      if (now - timestamp < CACHE_DURATION && source === currentSource) {
-        return data;
-      }
-      
-      // Cache expired or source changed
-      localStorage.removeItem(CACHE_KEY);
-      return null;
-    } catch (error) {
-      console.error("Error reading cache:", error);
-      return null;
-    }
-  };
-
-  // Save documents to cache
-  const setCachedDocuments = (docs: any[]) => {
-    try {
-      const source = useGoogleDriveFiles ? 'gdrive' : 'airweave';
-      localStorage.setItem(CACHE_KEY, JSON.stringify({
-        data: docs,
-        timestamp: Date.now(),
-        source
-      }));
-    } catch (error) {
-      console.error("Error saving cache:", error);
-    }
-  };
-
-  // Fetch documents once at parent level
-  const fetchDocuments = async (forceRefresh = false) => {
-    setIsLoadingDocs(true);
-    try {
-      let docs: any[] = [];
-      
-      if (useGoogleDriveFiles && isConnected) {
-        // Check database cache first for Google Drive
-        if (!forceRefresh) {
-          const { data: cachedDocs, error: cacheError } = await supabase
-            .from('google_drive_documents')
-            .select('*');
-          
-          if (!cacheError && cachedDocs && cachedDocs.length > 0) {
-            console.log("Using database cached Google Drive documents");
-            docs = cachedDocs.map(doc => ({
-              id: doc.google_drive_file_id,
-              filename: doc.filename,
-              source: doc.source,
-              url: doc.url,
-              link: doc.link,
-              metadata: doc.metadata
-            }));
-            setDocuments(docs);
-            setIsLoadingDocs(false);
-            return;
-          }
-        }
-        
-        // Fetch from Google Drive API
-        console.log("Fetching from Google Drive API");
-        const driveFiles = await listFiles();
-        docs = driveFiles;
-        
-        // Clear old cache and save new data to database
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          // Delete all old documents for this user first
-          await supabase
-            .from('google_drive_documents')
-            .delete()
-            .eq('user_id', user.id);
-          
-          // Insert fresh documents
-          const docsToInsert = driveFiles.map(doc => ({
-            user_id: user.id,
-            google_drive_file_id: doc.id || doc.filename,
-            filename: doc.filename || doc.name || 'Unknown',
-            source: doc.source || 'Google Drive',
-            url: doc.url || doc.webViewLink || '',
-            link: doc.link || doc.webViewLink || doc.url || '',
-            metadata: doc.metadata || doc
-          }));
-          
-          if (docsToInsert.length > 0) {
-            await supabase
-              .from('google_drive_documents')
-              .insert(docsToInsert);
-          }
-          console.log("Saved Google Drive documents to database");
-        }
-      } else {
-        // Use Airweave for non-Google Drive mode
-        const { data, error } = await supabase.functions.invoke("list-documents");
-        if (error) throw error;
-        docs = data?.documents || [];
-      }
-      
-      setDocuments(docs);
-      setCachedDocuments(docs);
-      console.log("Fetched and cached documents");
-    } catch (error) {
-      console.error("Error fetching documents:", error);
-      setDocuments([]);
-    } finally {
-      setIsLoadingDocs(false);
-    }
-  };
-
-  // Only fetch when filters are opened for the first time
-  useEffect(() => {
-    if (showFilters && !hasLoadedDocs) {
-      fetchDocuments();
-      setHasLoadedDocs(true);
-    }
-  }, [showFilters, hasLoadedDocs]);
-
-  // Fetch when manually refreshed or source changes
-  useEffect(() => {
-    if (hasLoadedDocs && refreshDocuments > 0) {
-      fetchDocuments();
-    }
-  }, [refreshDocuments, useGoogleDriveFiles]);
-
-  const handleGoogleDriveConnect = async () => {
-    try {
-      await connect();
-      toast.success("Đã kết nối Google Drive");
-      setUseGoogleDriveFiles(true);
-      localStorage.removeItem(CACHE_KEY); // Clear cache when switching source
-    } catch (err) {
-      toast.error("Không thể kết nối Google Drive");
-    }
-  };
-
-  const handleGoogleDriveDisconnect = () => {
-    disconnect();
-    setUseGoogleDriveFiles(false);
-    localStorage.removeItem(CACHE_KEY); // Clear cache when switching source
-    toast.success("Đã ngắt kết nối Google Drive");
-  };
 
   const handleLogout = async () => {
     try {
@@ -206,14 +41,7 @@ export const ChatInterface = () => {
     }
   };
 
-  const handleFiltersChange = (newFilters: Record<string, boolean>) => {
-    setFilters(newFilters);
-  };
-
   const handleUploadSuccess = () => {
-    // Clear cache and trigger refresh to fetch new document
-    localStorage.removeItem(CACHE_KEY);
-    setRefreshDocuments((prev) => prev + 1);
     toast.success("Tài liệu đã được upload và đang được xử lý. Bạn có thể hỏi về tài liệu này ngay bây giờ!");
   };
 
@@ -232,11 +60,10 @@ export const ChatInterface = () => {
     setIsLoading(true);
 
     try {
-      // Call edge function with query and filters
+      // Call edge function with query
       const { data, error } = await supabase.functions.invoke("chat", {
         body: {
           query: content.trim(),
-          filters: filters,
         },
       });
 
@@ -265,98 +92,21 @@ export const ChatInterface = () => {
     }
   };
 
-  const activeFiltersCount = Object.keys(filters).filter((key) => filters[key]).length;
-
   return (
     <div className="flex h-full">
-      {/* Document filters sidebar - Desktop (Left side) */}
-      {showFilters && (
-        <div className="w-80 border-r border-border/50 hidden lg:block bg-card/30 backdrop-blur flex flex-col">
-        <div className="flex-1 overflow-hidden">
-          <DocumentFilters 
-            onFiltersChange={handleFiltersChange} 
-            documents={documents}
-            isLoading={isLoadingDocs}
-            onRefresh={() => fetchDocuments(true)} // Force refresh
-            isConnected={isConnected}
-            onConnect={handleGoogleDriveConnect}
-            onDisconnect={handleGoogleDriveDisconnect}
-          />
-        </div>
-        <div className="p-4 border-t border-border/50">
-          <Button variant="outline" className="w-full" onClick={handleLogout}>
-            <LogOut className="h-4 w-4 mr-2" />
-            Đăng xuất
-          </Button>
-        </div>
-        </div>
-      )}
-
       {/* Main chat area */}
-      {/* Mobile filter button */}
       <div className="flex flex-col flex-1 min-w-0">
         <div className="border-b border-border/50 p-3 flex justify-between items-center gap-2 bg-card/30 backdrop-blur">
           <h2 className="text-lg font-semibold">Chat</h2>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleLogout}
-              className="bg-card/50 backdrop-blur border-border/50"
-            >
-              <LogOut className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowFilters(!showFilters)}
-              className="hidden lg:flex bg-card/50 backdrop-blur border-border/50"
-            >
-              <Filter className="h-4 w-4 mr-2" />
-              {showFilters ? 'Ẩn bộ lọc' : 'Hiện bộ lọc'}
-              {activeFiltersCount > 0 && (
-                <span className="ml-2 px-1.5 py-0.5 text-xs bg-primary text-primary-foreground rounded-full">
-                  {activeFiltersCount}
-                </span>
-              )}
-            </Button>
-            <Sheet open={isFiltersOpen} onOpenChange={(open) => {
-              setIsFiltersOpen(open);
-              if (open && !hasLoadedDocs) {
-                fetchDocuments();
-                setHasLoadedDocs(true);
-              }
-            }}>
-              <SheetTrigger asChild>
-                <Button variant="outline" size="sm" className="relative bg-card/50 backdrop-blur border-border/50">
-                  <Filter className="h-4 w-4 mr-2" />
-                  Bộ lọc
-                  {activeFiltersCount > 0 && (
-                    <span className="ml-2 px-1.5 py-0.5 text-xs bg-primary text-primary-foreground rounded-full">
-                      {activeFiltersCount}
-                    </span>
-                  )}
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="left" className="w-80 p-0 bg-card/95 backdrop-blur flex flex-col">
-                <SheetHeader className="p-4 border-b border-border/50">
-                  <SheetTitle>Bộ Lọc Tài Liệu</SheetTitle>
-                </SheetHeader>
-                <div className="flex-1 overflow-y-auto">
-                  <DocumentFilters 
-                    onFiltersChange={handleFiltersChange} 
-                    hideHeader
-                    documents={documents}
-                    isLoading={isLoadingDocs}
-                    onRefresh={() => fetchDocuments(true)} // Force refresh
-                    isConnected={isConnected}
-                    onConnect={handleGoogleDriveConnect}
-                    onDisconnect={handleGoogleDriveDisconnect}
-                  />
-                </div>
-              </SheetContent>
-            </Sheet>
-          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleLogout}
+            className="bg-card/50 backdrop-blur border-border/50"
+          >
+            <LogOut className="h-4 w-4 mr-2" />
+            Đăng xuất
+          </Button>
         </div>
 
         <div className="flex-1 overflow-hidden">
