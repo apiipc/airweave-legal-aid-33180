@@ -1,7 +1,7 @@
 export function getAirweaveConfig() {
   return {
     apiKey: Deno.env.get("muahangapi") || "",
-    collectionId: Deno.env.get("muahangnid") || "",
+    collectionId: Deno.env.get("muahangid") || "",
     baseUrl: "https://api.airweave.ai",
     searchConfig: {
       limit: 20,
